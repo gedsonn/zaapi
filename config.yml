@@ -1,0 +1,28 @@
+name: Zaapi
+server:
+  host: 0.0.0.0
+  port: 3000
+  enable: true
+  debug: false
+  maneger: false
+  swagger: false
+token: token
+database:
+  host: localhost
+  port: 5432
+  user: zaapi
+  password: zaapi
+  name: zaapi
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+webhook:
+  global: http://localhost:8080
+  local: http://localhost:8080
+  enabled: false
+  timeout: 5
+  retries: 3
+whatsapp:
+  version: latest
