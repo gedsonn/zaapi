@@ -1,15 +1,14 @@
-package cmd
+package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/apex/log"
-	"github.com/gedsonn/zaapi/config"
-	"github.com/gedsonn/zaapi/maneger"
-	server "github.com/gedsonn/zaapi/server/http"
+	"github.com/gedsonn/zaapi/internal/config"
+	"github.com/gedsonn/zaapi/internal/maneger"
+	server "github.com/gedsonn/zaapi/internal/server/http"
 	"github.com/spf13/cobra"
 )
 
@@ -23,16 +22,12 @@ var rootCmd = &cobra.Command{
 	Short:   "Zaapi - Serviço API",
 	Long:    `Zaapi é um serviço API modular com suporte a sessões, WhatsApp e WebSockets.`,
 	Version: "1.0.0",
-
-	// Executado antes de qualquer comando
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if debug {
 			log.Info("RODANDO EM MODO DE DEBUG")
 			os.Setenv("ZAAPI_DEBUG", "true")
 		}
 	},
-
-	// Executado quando o usuário digita somente "zaapi"
 	Run: start,
 }
 
@@ -45,30 +40,17 @@ func start(cmd *cobra.Command, args []string) {
 	configPath = fmt.Sprintf("%s/config.yml", cwd)
 	log.Infof("Usando arquivo de configuração: %s", configPath)
 
-	//Carregar aquivo de configuração
-	err = config.FromFile(configPath)
+	cfg, err := config.Load(configPath);
 	if err != nil {
-		//validar se o arquivo existe
-		if errors.Is(err, os.ErrNotExist) {
-
-			// arquivo não existe → criar novo config
-
-			cfg, _ := config.NewAtPath(configPath)
-			config.Set(cfg)
-			// salvar novo config no arquivo
-			if err := config.Save(configPath); err != nil {
-				log.Fatalf("Falha ao salvar novo arquivo de configuração: %s", err)
-			}
-
-			log.Infof("Novo arquivo de configuração criado com sucesso.")
-		} else {
-			log.Fatalf("Erro ao tentar ler o arquivo de configuração: %s", err)
-		}
+		log.Fatalf("%v", err)
 	}
+	m, err := maneger.Load()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%v", m)
 
-	//pegar configuração atual
-	cfg := config.Get()
-	m, err := manager.NewManager()
+	err = m.Sync()
 	if err != nil {
 		panic(err)
 	}
@@ -105,7 +87,7 @@ var debugCommand = &cobra.Command{
 	},
 }
 
-func Execute() {
+func main() {
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalf("Erro ao executar o Zaapi: %v", err)
 	}

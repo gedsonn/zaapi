@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/apex/log"
-	"github.com/gedsonn/zaapi/maneger"
-	"github.com/gedsonn/zaapi/server/controllers"
-	"github.com/gedsonn/zaapi/server/http/middleware"
+	"github.com/gedsonn/zaapi/internal/maneger"
+	"github.com/gedsonn/zaapi/internal/server/controllers"
+	"github.com/gedsonn/zaapi/internal/server/http/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func Configure(m *manager.SessionManager) *gin.Engine {
+func Configure(m *maneger.Manager) *gin.Engine {
 	gin.SetMode(gin.DebugMode)
 
 	router := gin.New()

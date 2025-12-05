@@ -1,12 +1,13 @@
 name: Zaapi
+token: token
+secret: "1234"
 server:
   host: 0.0.0.0
-  port: 3000
+  port: 8080
   enable: true
   debug: false
   maneger: false
   swagger: false
-token: token
 database:
   host: localhost
   port: 5432
@@ -26,3 +27,5 @@ webhook:
   retries: 3
 whatsapp:
   version: latest
+media:
+  path: assets

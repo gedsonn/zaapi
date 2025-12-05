@@ -1,12 +1,12 @@
 package middleware
 
 import (
-	manager "github.com/gedsonn/zaapi/maneger"
+	"github.com/gedsonn/zaapi/internal/maneger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-func AttachManager(m *manager.SessionManager) gin.HandlerFunc {
+func AttachManager(m *maneger.Manager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("manager", m)
 		c.Next()
@@ -24,11 +24,11 @@ func AttachRequestId() gin.HandlerFunc {
 
 }
 
-func ExtractManeger(c *gin.Context) *manager.SessionManager {
+func ExtractManeger(c *gin.Context) *maneger.Manager {
 	v, ok := c.Get("manager")
 	if !ok {
 		panic("ok")
 	}
-	return v.(*manager.SessionManager)
+	return v.(*maneger.Manager)
 }
 

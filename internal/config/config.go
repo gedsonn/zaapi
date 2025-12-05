@@ -1,18 +1,17 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"sync"
 
-	"github.com/creasty/defaults"
 	"github.com/goccy/go-yaml"
 )
-
 
 type ServerConfig struct {
 	Host    string `yaml:"host"`
 	Port    int    `yaml:"port"`
-	Enable  bool   `yml:"enable"`
+	Enable  bool   `yaml:"enable"`
 	Debug   bool   `yaml:"debug"`
 	Maneger bool   `yaml:"maneger"`
 	Swagger bool   `yaml:"swagger"`
@@ -37,23 +36,28 @@ type WebhookConfig struct {
 	Global  string `yaml:"global"`
 	Local   string `yaml:"local"`
 	Enabled bool   `yaml:"enabled"`
-
-	Timeout int `yaml:"timeout"`
-	Retries int `yaml:"retries"`
+	Timeout int    `yaml:"timeout"`
+	Retries int    `yaml:"retries"`
 }
 
 type WhatsConfig struct {
 	Version string `yaml:"version"`
 }
 
+type MediaConfig struct {
+	Path string `yaml:"path"`
+}
+
 type Configuration struct {
 	Name     string         `yaml:"name"`
-	Server   ServerConfig   `yaml:"server"`
 	Token    string         `yaml:"token"`
+	Secret   string         `yaml:"secret"`
+	Server   ServerConfig   `yaml:"server"`
 	Database DatabaseConfig `yaml:"database"`
 	Redis    RedisConfig    `yaml:"redis"`
 	Webhook  WebhookConfig  `yaml:"webhook"`
 	Whatsapp WhatsConfig    `yaml:"whatsapp"`
+	Media    MediaConfig    `yaml:"media"`
 }
 
 var (
@@ -61,10 +65,44 @@ var (
 	_config *Configuration
 )
 
-func NewAtPath(path string) (*Configuration, error) {
-	c := Configuration{
-		Name:  "Zaapi",
-		Token: "token",
+// Load loads the configuration from a file.
+// If the file does not exist, it creates one with default values.
+func Load(path string) (*Configuration, error) {
+
+	// -------- READ FILE --------
+	file, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		// File does not exist → create default config
+		cfg := DefaultConfig()
+		Set(cfg)
+
+		if err := Save(path); err != nil {
+			return nil, err
+		}
+
+		return cfg, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// -------- PARSE YAML --------
+	var data Configuration
+	if err := yaml.Unmarshal(file, &data); err != nil {
+		return nil, err
+	}
+
+	Set(&data)
+	return &data, nil
+}
+
+// DefaultConfig returns a new config with predefined values.
+func DefaultConfig() *Configuration {
+	return &Configuration{
+		Name:   "Zaapi",
+		Token:  "token",
+		Secret: "1234",
 
 		Server: ServerConfig{
 			Host:    "0.0.0.0",
@@ -101,56 +139,39 @@ func NewAtPath(path string) (*Configuration, error) {
 		Whatsapp: WhatsConfig{
 			Version: "latest",
 		},
-	}
 
-	if err := defaults.Set(&c); err != nil {
-		return nil, err
+		Media: MediaConfig{
+			Path: "assets",
+		},
 	}
-
-	return &c, nil
 }
 
+// Set sets the config safely in memory.
 func Set(c *Configuration) {
 	mu.Lock()
 	defer mu.Unlock()
-	token := c.Token
-	if token == "" {
-		token = "zaapi-default-token"
+
+	if c.Token == "" {
+		c.Token = "zaapi-default-token"
 	}
+
 	_config = c
-	_config.Token = token
 }
 
+// Get returns a copy of the current configuration.
 func Get() *Configuration {
 	mu.RLock()
-	c := *_config
-	mu.RUnlock()
-	return &c
-}
+	defer mu.RUnlock()
 
-func FromFile(path string) error {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	c, err := NewAtPath(path)
-	if err != nil {
-		return err
+	if _config == nil {
+		return DefaultConfig() // prevenção de nil pointer
 	}
 
-	if err := yaml.Unmarshal(b, c); err != nil {
-		return err
-	}
-
-	Set(c)
-	return nil
+	cpy := *_config
+	return &cpy
 }
 
-func Default() *Configuration {
-	c, _ := NewAtPath("")
-	return c
-}
-
+// Save writes the config to disk.
 func Save(path string) error {
 	mu.RLock()
 	c := *_config
